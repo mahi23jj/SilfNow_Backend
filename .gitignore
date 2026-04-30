@@ -1,0 +1,35 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS/editor files
+.DS_Store
+.vscode/
+
+alembic.ini
+
+# Environment files
+.env
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs and local DB
+*.log
+*.sqlite3
