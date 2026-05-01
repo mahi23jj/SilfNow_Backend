@@ -1,9 +1,8 @@
-import datetime
 from typing import List, Optional
 import uuid
 
-from pydantic import Field
-from sqlmodel import Relationship, SQLModel
+from sqlalchemy import Column, JSON
+from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.edge_status import EdgeStatus
 from app.models.node import Node
@@ -18,7 +17,10 @@ class Edge(SQLModel, table=True):
     from_node_id: uuid.UUID = Field(foreign_key="nodes.id", index=True)
     to_node_id: uuid.UUID = Field(foreign_key="nodes.id", index=True)
 
-    transport_types: List[str] = Field(default=["taxi", "bus"])
+    transport_types: List[str] = Field(
+        default_factory=lambda: ["taxi", "bus"],
+        sa_column=Column(JSON, nullable=False),
+    )
 
     base_travel_time_min: int
     base_travel_time_max: int
