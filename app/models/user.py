@@ -14,8 +14,8 @@ class User(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
 
     username: str
-    email: str = Field(index=True, unique=True)
-    phone_number: Optional[str] = None
+    email: Optional[str] = Field(index=True, unique=True)
+    phone_number: Optional[str] = Field(default=None, index=True, unique=True)
     hashed_password: str
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
