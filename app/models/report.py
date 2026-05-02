@@ -1,13 +1,15 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import uuid
 
 from sqlalchemy import Column, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.edge import Edge
 from app.models.report_enums import QueueLevel, VehicleAvailability
-from app.models.user import User
+
+if TYPE_CHECKING:
+    from app.models.edge import Edge
+    from app.models.user import User
 
 
 class Report(SQLModel, table=True):
@@ -38,5 +40,5 @@ class Report(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     # 🔗 relationships
-    user: Optional[User] = Relationship(back_populates="reports")
-    edge: Optional[Edge] = Relationship(back_populates="reports")
+    user: Optional["User"] = Relationship(back_populates="reports")
+    edge: Optional["Edge"] = Relationship(back_populates="reports")

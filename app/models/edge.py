@@ -1,13 +1,13 @@
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 import uuid
 
 from sqlalchemy import Column, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.edge_status import EdgeStatus
-from app.models.node import Node
-from app.models.report import Report
-from app.models.user import User
+if TYPE_CHECKING:
+    from app.models.edge_status import EdgeStatus
+    from app.models.node import Node
+    from app.models.report import Report
 
 class Edge(SQLModel, table=True):
     __tablename__ = "edges"
@@ -29,12 +29,12 @@ class Edge(SQLModel, table=True):
     base_cost_max: float
 
     # 🔗 relationships
-    from_node: Optional[Node] = Relationship(
+    from_node: Optional["Node"] = Relationship(
         back_populates="outgoing_edges",
         sa_relationship_kwargs={"foreign_keys": "[Edge.from_node_id]"}
     )
 
-    to_node: Optional[Node] = Relationship(
+    to_node: Optional["Node"] = Relationship(
         back_populates="incoming_edges",
         sa_relationship_kwargs={"foreign_keys": "[Edge.to_node_id]"}
     )

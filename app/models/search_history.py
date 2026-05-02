@@ -1,11 +1,11 @@
-import datetime
-from typing import Optional
+from datetime import datetime
+from typing import Optional, TYPE_CHECKING
 import uuid
 
-from pydantic import Field
-from sqlmodel import Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.user import User
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class SearchHistory(SQLModel, table=True):
@@ -21,4 +21,4 @@ class SearchHistory(SQLModel, table=True):
     searched_at: datetime = Field(default_factory=datetime.utcnow)
 
     # 🔗 relationship
-    user: Optional[User] = Relationship(back_populates="search_history")
+    user: Optional["User"] = Relationship(back_populates="search_history")

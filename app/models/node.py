@@ -1,9 +1,10 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 import uuid
 
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.edge import Edge
+if TYPE_CHECKING:
+    from app.models.edge import Edge
 
 
 class Node(SQLModel, table=True):

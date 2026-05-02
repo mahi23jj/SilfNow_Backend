@@ -1,13 +1,10 @@
-import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import uuid
 
-from pydantic import Field
-from sqlmodel import Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.user import User
-
-from sqlmodel import SQLModel
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class SavedPlace(SQLModel, table=True):
@@ -21,4 +18,4 @@ class SavedPlace(SQLModel, table=True):
     name: str
 
     # 🔗 relationship
-    user: Optional[User] = Relationship(back_populates="saved_places")
+    user: Optional["User"] = Relationship(back_populates="saved_places")

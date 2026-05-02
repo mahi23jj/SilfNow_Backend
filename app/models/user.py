@@ -1,11 +1,12 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 import uuid
 
-from app.models.report import Report
-from app.models.saved_place import SavedPlace
-from app.models.search_history import SearchHistory
+if TYPE_CHECKING:
+    from app.models.report import Report
+    from app.models.saved_place import SavedPlace
+    from app.models.search_history import SearchHistory
 
 
 class User(SQLModel, table=True):

@@ -1,12 +1,14 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import uuid
 
 from sqlalchemy import Column, Enum as SAEnum, UniqueConstraint
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.edge import Edge
 from app.models.report_enums import QueueLevel, VehicleAvailability
+
+if TYPE_CHECKING:
+    from app.models.edge import Edge
 
 class EdgeStatus(SQLModel, table=True):
     __tablename__ = "edge_status"
@@ -40,7 +42,7 @@ class EdgeStatus(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     # 🔗 relationship
-    edge: Optional[Edge] = Relationship(back_populates="status")
+    edge: Optional["Edge"] = Relationship(back_populates="status")
 
 
 
