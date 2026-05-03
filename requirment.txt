@@ -7,4 +7,5 @@ sqlmodel
 psycopg2-binary 
 alembic 
 pydantic 
-python-dotenv                                                      
+python-dotenv       
+python-multipart                                               

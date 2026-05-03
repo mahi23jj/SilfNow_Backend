@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field, EmailStr, ValidationError, model_validator
+from pydantic import BaseModel, Field, EmailStr, model_validator
 
 
 class UserSignInschema(BaseModel):
@@ -12,7 +12,7 @@ class UserSignInschema(BaseModel):
     @model_validator(mode="after")
     def passwords_match(self) -> "UserSignInschema":
         if self.password != self.password_confirm:
-            raise ValidationError([{"loc": ("password_confirm",), "msg": "Passwords do not match", "type": "value_error"}], self.__class__)
+            raise ValueError("Passwords do not match")
         return self
 
 

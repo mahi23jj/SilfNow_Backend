@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
+import bcrypt
 from sqlmodel import Session, select
 
 from app.core.config import settings
@@ -11,7 +11,6 @@ from app.schemas.auth import UserSignInschema, UserLoginSchema
 from app.models.user import User
 
 
-bycrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth_bearer = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token")
 
 
@@ -29,11 +28,17 @@ def create_access_token(data: dict, expires_delta: int | None = None) -> str:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bycrypt_context.verify(plain_password, hashed_password)
+    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 def get_password_hash(password: str) -> str:
-    return bycrypt_context.hash(password)
+    if len(password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password too long (max 72 characters)"
+        )
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
 
 
 def get_current_user(token: str = Depends(oauth_bearer)) -> dict:
@@ -87,6 +92,13 @@ async def sign_in_user(user: "UserSignInschema", db: Session) -> str:
 async def login_user(users: "UserLoginSchema", db: Session) -> str:
     # try to find by phone_number first, then email
     query = db.query(User)
+    if not users.phone_number and not users.email:
+        raise HTTPException(
+        status_code=400,
+        detail="Phone number or email required"
+        )   
+
+
     if users.phone_number:
         user = query.filter(User.phone_number == users.phone_number).first()
     else:
