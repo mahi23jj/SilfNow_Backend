@@ -39,8 +39,8 @@ def location_score_from_distance(distance_meters: float) -> float:
     return 0.0
 
 
-def is_near(lat1: float, lng1: float, lat2: float, lng2: float) -> bool:
-    return haversine_distance_meters(lat1, lng1, lat2, lng2) <= MAX_LOCATION_DISTANCE_METERS
+# def is_near(lat1: float, lng1: float, lat2: float, lng2: float) -> bool:
+    # return haversine_distance_meters(lat1, lng1, lat2, lng2) <= MAX_LOCATION_DISTANCE_METERS
 
 
 def time_decay(created_at: datetime) -> float:
