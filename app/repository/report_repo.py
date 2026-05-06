@@ -13,6 +13,7 @@ from app.models.report_enums import QueueLevel, VehicleAvailability
 from app.models.user import User
 from app.schemas.report import ReportCreateSchema
 from app.services.report_service import (
+    get_recent_reports,
     get_status,
     haversine_distance_meters,
     location_score_from_distance,
@@ -20,7 +21,7 @@ from app.services.report_service import (
 )
 
 
-DUPLICATE_REPORT_WINDOW_MINUTES = 2
+DUPLICATE_REPORT_WINDOW_MINUTES = 10
 
 
 def _resolve_user_id(session: Session, current_user: dict) -> object:
@@ -115,59 +116,119 @@ def create_report(data: ReportCreateSchema, session: Session, current_user: dict
 def rebuild_edge_status(edge_id, session: Session) -> dict:
     reports = get_status(edge_id, session)
 
-    session.exec(delete(EdgeStatus).where(EdgeStatus.edge_id == edge_id))
+    now = datetime.utcnow()
 
     if not reports["fresh"]:
         return reports
 
     for item in reports["statuses"]:
-        session.add(
-            EdgeStatus(
-                edge_id=edge_id,
-                transport_type=item["transport_type"],
-                queue_level=QueueLevel(item["queue_level"]),
-                vehicle_availability=VehicleAvailability(item["vehicle_availability"]),
-                estimated_wait_time=item["estimated_wait_time"],
-                confidence_score=item["confidence"],
-                recent_reports_count=item["num_reports"],
+        existing = session.exec(
+            select(EdgeStatus).where(
+                EdgeStatus.edge_id == edge_id,
+                EdgeStatus.transport_type == item["transport_type"]
             )
-        )
+        ).first()
 
+        if existing:
+            # 🔄 UPDATE
+            existing.queue_level = QueueLevel(item["queue_level"])
+            existing.vehicle_availability = VehicleAvailability(item["vehicle_availability"])
+            existing.estimated_wait_time = item["estimated_wait_time"]
+            existing.confidence_score = item["confidence"]
+            existing.recent_reports_count = item["num_reports"]
+            existing.updated_at = now
+            existing.stability = item["stability"]
+
+        else:
+            # ➕ INSERT
+            session.add(
+                EdgeStatus(
+                    edge_id=edge_id,
+                    transport_type=item["transport_type"],
+                    queue_level=QueueLevel(item["queue_level"]),
+                    vehicle_availability=VehicleAvailability(item["vehicle_availability"]),
+                    estimated_wait_time=item["estimated_wait_time"],
+                    confidence_score=item["confidence"],
+                    recent_reports_count=item["num_reports"],
+                    stability=item["stability"],
+                    updated_at=now,
+                )
+            )
+       
+    session.commit()
     return reports
 
 
+
+
+STALE_MINUTES = 10
+
+
 def get_edge_status_snapshot(edge_id, session: Session) -> dict:
-    live_snapshot = get_status(edge_id, session)
-    stored_statuses = session.exec(
+    rows = session.exec(
         select(EdgeStatus)
         .where(EdgeStatus.edge_id == edge_id)
-        .order_by(EdgeStatus.transport_type)
     ).all()
 
-    if not live_snapshot["fresh"]:
+    # 🟢 Case 1: no cache
+    if not rows:
+        return rebuild_edge_status(edge_id, session)
+
+    last_updated = max(r.updated_at for r in rows)
+    now = datetime.utcnow()
+
+    is_stale = (now - last_updated) > timedelta(minutes=STALE_MINUTES)
+
+    # 🟢 Case 2: fresh → return directly
+    if not is_stale:
         return {
             "edge_id": edge_id,
-            "fresh": False,
-            "last_updated": None,
-            "num_reports": 0,
-            "statuses": [],
-            "message": "No recent data",
+            "fresh": True,
+            "is_stale": False,
+            "last_updated": last_updated,
+            "statuses": [
+                {
+                    "transport_type": r.transport_type,
+                    "queue_level": r.queue_level,
+                    "vehicle_availability": r.vehicle_availability,
+                    "estimated_wait_time": r.estimated_wait_time,
+                    "confidence": r.confidence_score,
+                    "num_reports": r.recent_reports_count,
+                    "stability": r.stability,
+                }
+                for r in rows
+            ],
         }
+
+    # 🟢 Case 3: stale → check recent reports
+    recent_reports = get_recent_reports(edge_id, session)
+
+    if recent_reports:
+        return rebuild_edge_status(edge_id, session)
+
+    # 🟢 Case 4: stale + no new reports → degrade confidence
+    degraded_statuses = []
+
+    for r in rows:
+        degraded_confidence = round(r.confidence_score * 0.5, 2)
+
+        degraded_statuses.append(
+            {
+                "transport_type": r.transport_type,
+                "queue_level": r.queue_level,
+                "vehicle_availability": r.vehicle_availability,
+                "estimated_wait_time": r.estimated_wait_time,
+                "confidence": degraded_confidence,
+                "num_reports": r.recent_reports_count,
+                "stability": r.stability,
+            }
+        )
 
     return {
         "edge_id": edge_id,
-        "fresh": True,
-        "last_updated": live_snapshot["last_updated"],
-        "num_reports": live_snapshot["num_reports"],
-        "statuses": [
-            {
-                "transport_type": status_row.transport_type,
-                "queue_level": status_row.queue_level,
-                "vehicle_availability": status_row.vehicle_availability,
-                "estimated_wait_time": status_row.estimated_wait_time,
-                "confidence_score": status_row.confidence_score,
-                "recent_reports_count": status_row.recent_reports_count,
-            }
-            for status_row in stored_statuses
-        ],
+        "fresh": False,
+        "is_stale": True,
+        "last_updated": last_updated,
+        "message": "No recent reports, data may be outdated",
+        "statuses": degraded_statuses,
     }

@@ -37,6 +37,8 @@ class EdgeStatus(SQLModel, table=True):
 
     confidence_score: float = Field(default=0.0, ge=0, le=1)
 
+    stability : str = Field(default="MODERATE")  # "stable", "unstable", "MODERATE"
+
     recent_reports_count: int = Field(default=0, ge=0)
     
     updated_at: datetime = Field(default_factory=datetime.utcnow)
