@@ -262,7 +262,7 @@ def _build_route_summary(path: List, time: float, cost: float, risk: float, expl
         "total_cost": cost,
         "total_risk": risk,
         "switch_count": switch_count,
-        "explanation": [EdgeExplanation(**e).dict() for e in explanation],
+        "explanation": [EdgeExplanation(**e).model_dump() for e in explanation],
     }
 
 def diversify(paths, top_n=5):
