@@ -18,6 +18,7 @@ from app.services.report_service import (
     haversine_distance_meters,
     location_score_from_distance,
     normalize_transport_types,
+    register_report_submission,
 )
 
 
@@ -107,6 +108,7 @@ def create_report(data: ReportCreateSchema, session: Session, current_user: dict
 
     session.add(report)
     session.flush()
+    register_report_submission(user_id, session)
     rebuild_edge_status(edge.id, session)
     session.commit()
     session.refresh(report)
